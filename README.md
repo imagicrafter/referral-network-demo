@@ -199,6 +199,12 @@ For production deployment with Open WebUI integration, see **[DEPLOY.md](DEPLOY.
 2. **DO ADK Agent** - Deployed to Gradient, calls backend API
 3. **Open WebUI** - Connected via do-function-pipe.py
 
+For detailed Azure service documentation, see **[docs/azure_service_dependencies.md](docs/azure_service_dependencies.md)** which includes:
+- Architecture diagrams and data flow
+- How each Azure service was provisioned
+- Cost breakdown and optimization
+- Troubleshooting guides
+
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Open WebUI    │────▶│  DO ADK Agent   │────▶│ Azure Functions │────▶│  Cosmos DB      │
@@ -598,6 +604,8 @@ referral-network-demo/
 ├── requirements.txt      # Python dependencies
 ├── README.md
 ├── DEPLOY.md             # Full deployment guide
+├── docs/                 # Additional documentation
+│   └── azure_service_dependencies.md  # Azure services architecture & costs
 ├── pipes/                # Open WebUI integration
 │   ├── gradient-inference-pipe.py  # Option A: Direct Serverless Inference (recommended)
 │   └── do-function-pipe.py         # Option B: DO ADK deployed agent
