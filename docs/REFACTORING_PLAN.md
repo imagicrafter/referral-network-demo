@@ -106,57 +106,43 @@ referral-network-demo/
 
 ---
 
-### Phase 2: Create Shared Module Structure
+### Phase 2: Create Shared Module Structure - COMPLETED
 
 **2.1 Create `src/` directory with shared code**
+- [x] Created `src/__init__.py`
+- [x] Created `src/cosmos_connection.py` (merged with conditional dotenv loading)
+- [x] Created `src/tools/__init__.py`
+- [x] Created `src/tools/definitions.py` (extracted TOOL_DEFINITIONS)
+- [x] Created `src/tools/queries.py` (extracted query functions)
+- [x] Created `src/tools/diagram_generators.py` (copied from azure-functions/)
+- [x] Created `src/prompts/__init__.py`
+- [x] Created `src/prompts/system_prompts.py` (extracted shared prompts)
 
+**Structure created:**
 ```
 src/
 ├── __init__.py
 ├── cosmos_connection.py      # Merged from both locations
 ├── tools/
 │   ├── __init__.py
-│   ├── definitions.py        # Extract TOOL_DEFINITIONS from agent_tools.py
-│   ├── queries.py            # Extract query functions from agent_tools.py
-│   └── diagram_generators.py # Move from azure-functions/
+│   ├── definitions.py        # TOOL_DEFINITIONS + get_tool_functions()
+│   ├── queries.py            # All query functions
+│   └── diagram_generators.py # Mermaid diagram generators
 └── prompts/
     ├── __init__.py
-    └── system_prompts.py     # Extract from run_agent.py, main.py
+    └── system_prompts.py     # SYSTEM_PROMPT + HOSPITAL_LIST
 ```
 
-**2.2 Consolidate cosmos_connection.py**
-- Merge `/cosmos_connection.py` and `/azure-functions/cosmos_connection.py`
-- Handle dotenv conditionally based on environment
+**Key improvements:**
+- `cosmos_connection.py`: Loads dotenv only if not in Azure Functions (checks FUNCTIONS_WORKER_RUNTIME)
+- `definitions.py`: Includes `get_tool_functions()` helper for easy function mapping
+- `system_prompts.py`: Separates HOSPITAL_LIST for reuse
 
-**2.3 Extract tool definitions**
-- Move `TOOL_DEFINITIONS` from `agent_tools.py` to `src/tools/definitions.py`
-- Both CLI and Azure Functions import from here
-
-**2.4 Extract query implementations**
-- Move query functions to `src/tools/queries.py`
-- `function_app.py` imports and wraps these (removes ~200 lines of duplication)
-
-**2.5 Move diagram generators**
-- Move `azure-functions/diagram_generators.py` to `src/tools/diagram_generators.py`
-- Update imports in `function_app.py`
-
-**Files to create:**
-- `src/__init__.py`
-- `src/cosmos_connection.py`
-- `src/tools/__init__.py`
-- `src/tools/definitions.py`
-- `src/tools/queries.py`
-- `src/tools/diagram_generators.py`
-- `src/prompts/__init__.py`
-- `src/prompts/system_prompts.py`
-
-**Files to modify:**
-- `azure-functions/function_app.py` (import from src, remove duplicated code)
-- `run_agent.py` (import from src)
-- Delete: `/cosmos_connection.py` (moved to src/)
-- Delete: `/agent_tools.py` (split into src/tools/)
-- Delete: `/azure-functions/cosmos_connection.py`
-- Delete: `/azure-functions/diagram_generators.py`
+**Files to delete (in Phase 3 after consumers updated):**
+- `/cosmos_connection.py` (moved to src/)
+- `/agent_tools.py` (split into src/tools/)
+- `/azure-functions/cosmos_connection.py`
+- `/azure-functions/diagram_generators.py`
 
 ---
 
