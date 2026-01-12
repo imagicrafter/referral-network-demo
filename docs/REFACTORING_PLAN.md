@@ -174,13 +174,19 @@ src/
 
 ---
 
-### Phase 4: Organize Utility Scripts
+### Phase 4: Organize Utility Scripts - COMPLETED
 
 **4.1 Create scripts/ directory**
-- Move: `load_sample_data.py` → `scripts/load_sample_data.py`
-- Move: `explore_graph.py` → `scripts/explore_graph.py`
-- Move: `export_for_powerbi.py` → `scripts/export_for_powerbi.py`
-- Update imports to use `src/`
+- [x] Created `scripts/` directory
+- [x] Moved `load_sample_data.py` → `scripts/load_sample_data.py`
+- [x] Moved `explore_graph.py` → `scripts/explore_graph.py`
+- [x] Moved `export_for_powerbi.py` → `scripts/export_for_powerbi.py`
+- [x] Updated all scripts to import from `src/`
+
+**Files created:**
+- `scripts/load_sample_data.py`
+- `scripts/explore_graph.py`
+- `scripts/export_for_powerbi.py`
 
 ---
 

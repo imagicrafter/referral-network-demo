@@ -1,13 +1,20 @@
+#!/usr/bin/env python3
 """
 Export Cosmos DB Gremlin data to CSV and JSON for Power BI.
 """
+import sys
 import os
+
+# Add parent directory to path for src/ imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import csv
 from datetime import datetime
-from cosmos_connection import get_client, execute_query
+from src.cosmos_connection import get_client, execute_query
 
 OUTPUT_DIR = "powerbi_export"
+
 
 def ensure_output_dir():
     """Create output directory if it doesn't exist."""
@@ -15,13 +22,14 @@ def ensure_output_dir():
         os.makedirs(OUTPUT_DIR)
     print(f"Output directory: {OUTPUT_DIR}/")
 
+
 def export_hospitals(client):
     """Export hospitals to CSV and JSON."""
     print("\nExporting hospitals...")
-    
+
     query = "g.V().hasLabel('hospital').valueMap(true)"
     results = execute_query(client, query)
-    
+
     # Clean up the data
     hospitals = []
     for r in results:
@@ -35,29 +43,30 @@ def export_hospitals(client):
             'rural': r.get('rural', [False])[0] if isinstance(r.get('rural'), list) else r.get('rural', False),
         }
         hospitals.append(hospital)
-    
+
     # Write CSV
     csv_path = f"{OUTPUT_DIR}/hospitals.csv"
     with open(csv_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['id', 'name', 'city', 'state', 'type', 'beds', 'rural'])
         writer.writeheader()
         writer.writerows(hospitals)
-    
+
     # Write JSON
     json_path = f"{OUTPUT_DIR}/hospitals.json"
     with open(json_path, 'w') as f:
         json.dump(hospitals, f, indent=2)
-    
+
     print(f"  Exported {len(hospitals)} hospitals")
     return hospitals
+
 
 def export_providers(client):
     """Export providers to CSV and JSON."""
     print("\nExporting providers...")
-    
+
     query = "g.V().hasLabel('provider').valueMap(true)"
     results = execute_query(client, query)
-    
+
     providers = []
     for r in results:
         provider = {
@@ -67,29 +76,30 @@ def export_providers(client):
             'npi': r.get('npi', [''])[0] if isinstance(r.get('npi'), list) else r.get('npi', ''),
         }
         providers.append(provider)
-    
+
     # Write CSV
     csv_path = f"{OUTPUT_DIR}/providers.csv"
     with open(csv_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['id', 'name', 'specialty', 'npi'])
         writer.writeheader()
         writer.writerows(providers)
-    
+
     # Write JSON
     json_path = f"{OUTPUT_DIR}/providers.json"
     with open(json_path, 'w') as f:
         json.dump(providers, f, indent=2)
-    
+
     print(f"  Exported {len(providers)} providers")
     return providers
+
 
 def export_service_lines(client):
     """Export service lines to CSV and JSON."""
     print("\nExporting service lines...")
-    
+
     query = "g.V().hasLabel('service_line').valueMap(true)"
     results = execute_query(client, query)
-    
+
     service_lines = []
     for r in results:
         svc = {
@@ -98,26 +108,27 @@ def export_service_lines(client):
             'category': r.get('category', [''])[0] if isinstance(r.get('category'), list) else r.get('category', ''),
         }
         service_lines.append(svc)
-    
+
     # Write CSV
     csv_path = f"{OUTPUT_DIR}/service_lines.csv"
     with open(csv_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['id', 'name', 'category'])
         writer.writeheader()
         writer.writerows(service_lines)
-    
+
     # Write JSON
     json_path = f"{OUTPUT_DIR}/service_lines.json"
     with open(json_path, 'w') as f:
         json.dump(service_lines, f, indent=2)
-    
+
     print(f"  Exported {len(service_lines)} service lines")
     return service_lines
+
 
 def export_referrals(client):
     """Export referral relationships to CSV and JSON."""
     print("\nExporting referrals...")
-    
+
     query = """
     g.E().hasLabel('refers_to')
       .project('from_id', 'from_name', 'to_id', 'to_name', 'count', 'avg_acuity')
@@ -129,7 +140,7 @@ def export_referrals(client):
       .by('avg_acuity')
     """
     results = execute_query(client, query)
-    
+
     referrals = []
     for r in results:
         referral = {
@@ -141,26 +152,27 @@ def export_referrals(client):
             'avg_acuity': r.get('avg_acuity', 0),
         }
         referrals.append(referral)
-    
+
     # Write CSV
     csv_path = f"{OUTPUT_DIR}/referrals.csv"
     with open(csv_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['from_hospital_id', 'from_hospital_name', 'to_hospital_id', 'to_hospital_name', 'referral_count', 'avg_acuity'])
         writer.writeheader()
         writer.writerows(referrals)
-    
+
     # Write JSON
     json_path = f"{OUTPUT_DIR}/referrals.json"
     with open(json_path, 'w') as f:
         json.dump(referrals, f, indent=2)
-    
+
     print(f"  Exported {len(referrals)} referral relationships")
     return referrals
+
 
 def export_employment(client):
     """Export employment relationships to CSV and JSON."""
     print("\nExporting employment relationships...")
-    
+
     query = """
     g.E().hasLabel('employs')
       .project('hospital_id', 'hospital_name', 'provider_id', 'provider_name', 'fte')
@@ -171,7 +183,7 @@ def export_employment(client):
       .by('fte')
     """
     results = execute_query(client, query)
-    
+
     employments = []
     for r in results:
         emp = {
@@ -182,26 +194,27 @@ def export_employment(client):
             'fte': r.get('fte', 0),
         }
         employments.append(emp)
-    
+
     # Write CSV
     csv_path = f"{OUTPUT_DIR}/employment.csv"
     with open(csv_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['hospital_id', 'hospital_name', 'provider_id', 'provider_name', 'fte'])
         writer.writeheader()
         writer.writerows(employments)
-    
+
     # Write JSON
     json_path = f"{OUTPUT_DIR}/employment.json"
     with open(json_path, 'w') as f:
         json.dump(employments, f, indent=2)
-    
+
     print(f"  Exported {len(employments)} employment relationships")
     return employments
+
 
 def export_hospital_services(client):
     """Export hospital-service relationships to CSV and JSON."""
     print("\nExporting hospital services...")
-    
+
     query = """
     g.E().hasLabel('specializes_in')
       .project('hospital_id', 'hospital_name', 'service_id', 'service_name', 'volume', 'ranking')
@@ -213,7 +226,7 @@ def export_hospital_services(client):
       .by('ranking')
     """
     results = execute_query(client, query)
-    
+
     services = []
     for r in results:
         svc = {
@@ -225,21 +238,22 @@ def export_hospital_services(client):
             'ranking': r.get('ranking', 0),
         }
         services.append(svc)
-    
+
     # Write CSV
     csv_path = f"{OUTPUT_DIR}/hospital_services.csv"
     with open(csv_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=['hospital_id', 'hospital_name', 'service_id', 'service_name', 'volume', 'ranking'])
         writer.writeheader()
         writer.writerows(services)
-    
+
     # Write JSON
     json_path = f"{OUTPUT_DIR}/hospital_services.json"
     with open(json_path, 'w') as f:
         json.dump(services, f, indent=2)
-    
+
     print(f"  Exported {len(services)} hospital-service relationships")
     return services
+
 
 def create_summary(hospitals, providers, service_lines, referrals, employments, hospital_services):
     """Create a summary file with metadata."""
@@ -268,21 +282,22 @@ def create_summary(hospitals, providers, service_lines, referrals, employments, 
             'hospital_services.json',
         ]
     }
-    
+
     with open(f"{OUTPUT_DIR}/export_summary.json", 'w') as f:
         json.dump(summary, f, indent=2)
-    
+
     return summary
+
 
 def main():
     print("=" * 50)
-    print(" Cosmos DB → Power BI Export")
+    print(" Cosmos DB -> Power BI Export")
     print("=" * 50)
-    
+
     ensure_output_dir()
-    
+
     client = get_client()
-    
+
     try:
         hospitals = export_hospitals(client)
         providers = export_providers(client)
@@ -290,9 +305,9 @@ def main():
         referrals = export_referrals(client)
         employments = export_employment(client)
         hospital_services = export_hospital_services(client)
-        
+
         summary = create_summary(hospitals, providers, service_lines, referrals, employments, hospital_services)
-        
+
         print("\n" + "=" * 50)
         print(" Export Complete!")
         print("=" * 50)
@@ -305,12 +320,13 @@ def main():
         print(f"  - {summary['record_counts']['hospital_services']} hospital-service relationships")
         print("\nCSV files are ready for Power BI import:")
         print("  1. Open Power BI Desktop")
-        print("  2. Get Data → Text/CSV")
+        print("  2. Get Data -> Text/CSV")
         print("  3. Select the CSV files from powerbi_export/")
         print("  4. Create relationships between tables using the ID fields")
-        
+
     finally:
         client.close()
+
 
 if __name__ == "__main__":
     main()
