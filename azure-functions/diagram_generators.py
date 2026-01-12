@@ -272,9 +272,9 @@ def generate_service_network_diagram(
 
         # Create label with hospital name and metrics on separate lines
         if include_rankings and ranking:
-            label = f"{escaped_name}<br/>Volume: {volume}<br/>Rank: {ranking}"
+            label = f"{escaped_name}<br>Volume: {volume}<br>Rank: {ranking}"
         else:
-            label = f"{escaped_name}<br/>Volume: {volume}"
+            label = f"{escaped_name}<br>Volume: {volume}"
 
         nodes.append(f'    {node_id}["{label}"]')
         edges.append(f"    {service_id} --> {node_id}")
