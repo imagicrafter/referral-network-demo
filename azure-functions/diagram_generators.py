@@ -249,10 +249,10 @@ def generate_service_network_diagram(
 
     lines = ["graph TD"]
 
-    # Create central service node
+    # Create central service node (using stadium shape to avoid quote escaping issues)
     service_id = sanitize_node_id(service_name)
     escaped_service = escape_label(service_name)
-    lines.append(f'    {service_id}(("{escaped_service}"))')
+    lines.append(f'    {service_id}(["{escaped_service}"])')
 
     # Add hospital nodes
     nodes = []
