@@ -1,0 +1,17 @@
+# Core dependencies for referral-network-demo
+# Install with: pip install -r requirements.txt
+
+# Graph database
+gremlinpython>=3.7.0
+
+# Environment configuration
+python-dotenv>=1.0.0
+
+# Azure OpenAI (for Azure agent)
+openai>=1.0.0
+
+# Gradient/DigitalOcean (for Gradient agent)
+gradient-adk>=0.1.9
+gradient>=3.10.0
+httpx>=0.25.0
+pydantic>=2.0.0
