@@ -2,8 +2,15 @@
 Referral Network Agent using Gradient ADK.
 Uses DigitalOcean's Gradient platform for LLM inference.
 Calls Azure Functions backend API for tool execution.
+
+Refactored to use shared modules from src/.
 """
+import sys
 import os
+
+# Add parent directory to path for src/ imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import json
 import asyncio
 import httpx
@@ -17,6 +24,10 @@ from gradient_adk import entrypoint
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
+# Import from shared modules
+from src.tools.definitions import TOOL_DEFINITIONS
+from src.prompts.system_prompts import SYSTEM_PROMPT
+
 # Configuration
 GRADIENT_MODEL = os.getenv("GRADIENT_MODEL", "openai-gpt-oss-120b")
 GRADIENT_MODEL_ACCESS_KEY = os.getenv("GRADIENT_MODEL_ACCESS_KEY")
@@ -24,122 +35,6 @@ GRADIENT_MODEL_ACCESS_KEY = os.getenv("GRADIENT_MODEL_ACCESS_KEY")
 # Backend API configuration
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "")
 BACKEND_API_KEY = os.getenv("BACKEND_API_KEY", "")
-
-# Tool definitions for the LLM
-TOOL_DEFINITIONS = [
-    {
-        "name": "find_hospital",
-        "description": "Search for hospitals by name, state, type, or rural status. Use partial names like 'Children's Mercy' to find matches.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string", "description": "Hospital name (partial match supported)"},
-                "state": {"type": "string", "description": "State abbreviation (e.g., 'MO', 'KS')"},
-                "hospital_type": {"type": "string", "enum": ["tertiary", "community", "regional", "specialty"]},
-                "rural": {"type": "boolean", "description": "Whether the hospital is in a rural area"}
-            }
-        }
-    },
-    {
-        "name": "get_referral_sources",
-        "description": "Find all hospitals that refer patients to a specific hospital",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "hospital_name": {"type": "string", "description": "Exact name of the receiving hospital"}
-            },
-            "required": ["hospital_name"]
-        }
-    },
-    {
-        "name": "get_referral_destinations",
-        "description": "Find all hospitals that receive referrals from a specific hospital",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "hospital_name": {"type": "string", "description": "Exact name of the referring hospital"}
-            },
-            "required": ["hospital_name"]
-        }
-    },
-    {
-        "name": "get_network_statistics",
-        "description": "Get overall statistics about the referral network",
-        "parameters": {"type": "object", "properties": {}}
-    },
-    {
-        "name": "find_referral_path",
-        "description": "Find referral paths between two hospitals",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "from_hospital": {"type": "string", "description": "Starting hospital name"},
-                "to_hospital": {"type": "string", "description": "Destination hospital name"},
-                "max_hops": {"type": "integer", "description": "Maximum intermediate hospitals", "default": 3}
-            },
-            "required": ["from_hospital", "to_hospital"]
-        }
-    },
-    {
-        "name": "get_providers_by_specialty",
-        "description": "Find providers by medical specialty",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "specialty": {"type": "string", "description": "Medical specialty name"}
-            },
-            "required": ["specialty"]
-        }
-    },
-    {
-        "name": "get_hospitals_by_service",
-        "description": "Find hospitals offering a specific service line",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "service_name": {"type": "string", "description": "Name of the service line"}
-            },
-            "required": ["service_name"]
-        }
-    },
-    {
-        "name": "analyze_rural_access",
-        "description": "Analyze how rural hospitals connect to specialized services",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "service_name": {"type": "string", "description": "Name of the specialized service"}
-            },
-            "required": ["service_name"]
-        }
-    }
-]
-
-SYSTEM_PROMPT = """You are a healthcare analytics assistant with access to a referral network
-database for children's hospitals. You can query information about hospitals, providers,
-referral patterns, and service lines.
-
-When asked questions about the network, use the available tools to find accurate information.
-Summarize your findings in a clear, professional manner suitable for healthcare administrators.
-
-Available data includes:
-- Hospital information (name, location, type, bed count, rural status)
-- Provider information (name, specialty, hospital affiliations)
-- Referral relationships between hospitals (volume, acuity)
-- Service lines and which hospitals offer them
-
-The hospitals in the database include:
-- Children's Mercy Kansas City (tertiary, MO)
-- Children's Hospital Colorado (tertiary, CO)
-- St. Louis Children's Hospital (tertiary, MO)
-- Regional Medical Center (community, rural, MO)
-- Prairie Community Hospital (community, rural, KS)
-- Heartland Pediatrics (specialty, KS)
-- Ozark Regional Medical (regional, MO)
-- Nebraska Children's (tertiary, NE)
-
-Always base your answers on actual data from the tools, not assumptions.
-When searching for a hospital, use the exact name as listed above."""
 
 
 def get_tools_schema() -> List[Dict]:

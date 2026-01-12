@@ -146,30 +146,31 @@ src/
 
 ---
 
-### Phase 3: Update Consumers
+### Phase 3: Update Consumers - COMPLETED
 
 **3.1 Update Azure Functions**
-- Refactor `function_app.py` to import from `src.tools.queries`
-- Each endpoint becomes a thin wrapper (~10 lines instead of ~50)
+- [x] Refactored `function_app.py` to import from `src.tools.queries`
+- [x] Each endpoint is now a thin wrapper (~10 lines instead of ~50)
+- [x] Reduced from 576 lines to 349 lines (~40% reduction)
 
 **3.2 Update CLI tools**
-- Update `run_agent.py` to import from `src/`
-- Move to `cli/` directory
+- [x] Created `cli/` directory
+- [x] Created `cli/run_agent.py` with imports from `src/`
+- [x] Created `cli/network_cli.py` with imports from `src/`
+- [x] Created backward-compatible wrappers at root (`run_agent.py`, `network_cli.py`)
 
 **3.3 Update Gradient Agent**
-- Update `gradient-agents/main.py` to import from `src/`
+- [x] Updated `gradient-agents/main.py` to import from `src/`
+- [x] Reduced from 300 lines to 195 lines (~35% reduction)
 
-**3.4 Update Open WebUI Pipes**
-- Update pipes to import tool definitions from `src/`
-- Note: Pipes are standalone files for Open WebUI, may need embedded definitions
+**3.4 Open WebUI Pipes**
+- [ ] Pipes remain standalone (embedded definitions) - Open WebUI requires standalone files
 
-**Files to modify:**
-- `azure-functions/function_app.py`
-- `run_agent.py` → `cli/run_agent.py`
-- `network_cli.py` → `cli/network_cli.py`
-- `gradient-agents/main.py`
-- `pipes/gradient-inference-pipe.py`
-- `pipes/do-function-pipe.py`
+**Files deleted (consolidated into src/):**
+- `/cosmos_connection.py`
+- `/agent_tools.py`
+- `/azure-functions/cosmos_connection.py`
+- `/azure-functions/diagram_generators.py`
 
 ---
 

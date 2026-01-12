@@ -1,396 +1,45 @@
 """
 Azure Functions backend API for Referral Network Agent Tools.
-Exposes agent_tools as HTTP endpoints that can be called by the DO ADK agent.
+Exposes query functions as HTTP endpoints that can be called by the DO ADK agent.
+
+Refactored to use shared modules from src/.
 """
+import sys
+import os
+
+# Add parent directory to path for src/ imports (needed for Azure Functions deployment)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import azure.functions as func
 import json
 import logging
-import os
-from typing import Dict, Any, Optional
 
-# Import the Cosmos DB connection and tools
-from cosmos_connection import get_client, execute_query
+# Import from shared modules
+from src.tools.queries import (
+    find_hospital as query_find_hospital,
+    get_referral_sources as query_get_referral_sources,
+    get_referral_destinations as query_get_referral_destinations,
+    get_network_statistics as query_get_network_statistics,
+    find_referral_path as query_find_referral_path,
+    get_providers_by_specialty as query_get_providers_by_specialty,
+    get_hospitals_by_service as query_get_hospitals_by_service,
+    analyze_rural_access as query_analyze_rural_access,
+    get_graph_client,
+    _clean_value_map,
+)
+from src.tools.diagram_generators import (
+    generate_referral_network_diagram,
+    generate_path_diagram,
+    generate_service_network_diagram,
+)
+from src.cosmos_connection import execute_query
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
-# Global Gremlin client
-_client = None
 
-
-def get_graph_client():
-    """Get or create the Gremlin client."""
-    global _client
-    if _client is None:
-        _client = get_client()
-    return _client
-
-
-def _clean_value_map(results: list) -> list:
-    """Convert Gremlin valueMap results to cleaner dictionaries."""
-    cleaned = []
-    for item in results:
-        if isinstance(item, dict):
-            clean_item = {}
-            for key, value in item.items():
-                if isinstance(value, list) and len(value) == 1:
-                    clean_item[key] = value[0]
-                else:
-                    clean_item[key] = value
-            cleaned.append(clean_item)
-        else:
-            cleaned.append(item)
-    return cleaned
-
-
-# Health check endpoint
-@app.route(route="health", methods=["GET"])
-def health_check(req: func.HttpRequest) -> func.HttpResponse:
-    """Health check endpoint."""
-    return func.HttpResponse(
-        json.dumps({"status": "healthy", "service": "referral-network-api"}),
-        mimetype="application/json"
-    )
-
-
-# Tool: find_hospital
-@app.route(route="tools/find_hospital", methods=["POST"])
-def find_hospital(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Find hospitals matching the given criteria.
-
-    Body:
-        name: Hospital name (partial match)
-        state: State abbreviation
-        hospital_type: Type of hospital
-        rural: Whether the hospital is in a rural area
-    """
-    try:
-        body = req.get_json()
-        name = body.get("name")
-        state = body.get("state")
-        hospital_type = body.get("hospital_type")
-        rural = body.get("rural")
-
-        client = get_graph_client()
-        query = "g.V().hasLabel('hospital')"
-
-        if name:
-            safe_name = name.replace("'", "\\'")
-            query += f".has('name', TextP.containing('{safe_name}'))"
-        if state:
-            query += f".has('state', '{state}')"
-        if hospital_type:
-            query += f".has('type', '{hospital_type}')"
-        if rural is not None:
-            query += f".has('rural', {str(rural).lower()})"
-
-        query += ".valueMap(true)"
-
-        results = execute_query(client, query)
-        cleaned = _clean_value_map(results)
-
-        return func.HttpResponse(
-            json.dumps(cleaned),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in find_hospital: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Tool: get_referral_sources
-@app.route(route="tools/get_referral_sources", methods=["POST"])
-def get_referral_sources(req: func.HttpRequest) -> func.HttpResponse:
-    """Find all hospitals that refer patients to the specified hospital."""
-    try:
-        body = req.get_json()
-        hospital_name = body.get("hospital_name")
-
-        if not hospital_name:
-            return func.HttpResponse(
-                json.dumps({"error": "hospital_name is required"}),
-                status_code=400,
-                mimetype="application/json"
-            )
-
-        client = get_graph_client()
-        safe_name = hospital_name.replace("'", "\\'")
-
-        query = f"""
-        g.V().has('hospital', 'name', '{safe_name}')
-          .inE('refers_to')
-          .order().by('count', decr)
-          .project('referring_hospital', 'referral_count', 'avg_acuity')
-          .by(outV().values('name'))
-          .by('count')
-          .by('avg_acuity')
-        """
-
-        results = execute_query(client, query)
-
-        return func.HttpResponse(
-            json.dumps(results),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in get_referral_sources: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Tool: get_referral_destinations
-@app.route(route="tools/get_referral_destinations", methods=["POST"])
-def get_referral_destinations(req: func.HttpRequest) -> func.HttpResponse:
-    """Find all hospitals that receive referrals from the specified hospital."""
-    try:
-        body = req.get_json()
-        hospital_name = body.get("hospital_name")
-
-        if not hospital_name:
-            return func.HttpResponse(
-                json.dumps({"error": "hospital_name is required"}),
-                status_code=400,
-                mimetype="application/json"
-            )
-
-        client = get_graph_client()
-        safe_name = hospital_name.replace("'", "\\'")
-
-        query = f"""
-        g.V().has('hospital', 'name', '{safe_name}')
-          .outE('refers_to')
-          .order().by('count', decr)
-          .project('destination_hospital', 'referral_count', 'avg_acuity')
-          .by(inV().values('name'))
-          .by('count')
-          .by('avg_acuity')
-        """
-
-        results = execute_query(client, query)
-
-        return func.HttpResponse(
-            json.dumps(results),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in get_referral_destinations: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Tool: get_network_statistics
-@app.route(route="tools/get_network_statistics", methods=["POST", "GET"])
-def get_network_statistics(req: func.HttpRequest) -> func.HttpResponse:
-    """Get overall statistics about the referral network."""
-    try:
-        client = get_graph_client()
-
-        stats = {}
-        stats['total_hospitals'] = execute_query(client,
-            "g.V().hasLabel('hospital').count()")[0]
-        stats['total_providers'] = execute_query(client,
-            "g.V().hasLabel('provider').count()")[0]
-        stats['total_referral_relationships'] = execute_query(client,
-            "g.E().hasLabel('refers_to').count()")[0]
-        stats['total_referral_volume'] = execute_query(client,
-            "g.E().hasLabel('refers_to').values('count').sum()")[0]
-        stats['rural_hospitals'] = execute_query(client,
-            "g.V().hasLabel('hospital').has('rural', true).count()")[0]
-        stats['tertiary_centers'] = execute_query(client,
-            "g.V().hasLabel('hospital').has('type', 'tertiary').count()")[0]
-
-        return func.HttpResponse(
-            json.dumps(stats),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in get_network_statistics: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Tool: find_referral_path
-@app.route(route="tools/find_referral_path", methods=["POST"])
-def find_referral_path(req: func.HttpRequest) -> func.HttpResponse:
-    """Find referral paths between two hospitals."""
-    try:
-        body = req.get_json()
-        from_hospital = body.get("from_hospital")
-        to_hospital = body.get("to_hospital")
-        max_hops = body.get("max_hops", 3)
-
-        if not from_hospital or not to_hospital:
-            return func.HttpResponse(
-                json.dumps({"error": "from_hospital and to_hospital are required"}),
-                status_code=400,
-                mimetype="application/json"
-            )
-
-        client = get_graph_client()
-        safe_from = from_hospital.replace("'", "\\'")
-        safe_to = to_hospital.replace("'", "\\'")
-
-        query = f"""
-        g.V().has('hospital', 'name', '{safe_from}')
-          .repeat(out('refers_to').simplePath())
-          .until(has('name', '{safe_to}').or().loops().is(gte({max_hops})))
-          .has('name', '{safe_to}')
-          .path()
-          .by('name')
-          .limit(10)
-        """
-
-        results = execute_query(client, query)
-
-        return func.HttpResponse(
-            json.dumps(results),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in find_referral_path: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Tool: get_providers_by_specialty
-@app.route(route="tools/get_providers_by_specialty", methods=["POST"])
-def get_providers_by_specialty(req: func.HttpRequest) -> func.HttpResponse:
-    """Find providers by specialty and their hospital affiliations."""
-    try:
-        body = req.get_json()
-        specialty = body.get("specialty")
-
-        if not specialty:
-            return func.HttpResponse(
-                json.dumps({"error": "specialty is required"}),
-                status_code=400,
-                mimetype="application/json"
-            )
-
-        client = get_graph_client()
-        safe_specialty = specialty.replace("'", "\\'")
-
-        query = f"""
-        g.V().hasLabel('provider')
-          .has('specialty', '{safe_specialty}')
-          .project('provider_name', 'specialty')
-          .by('name')
-          .by('specialty')
-        """
-
-        results = execute_query(client, query)
-
-        return func.HttpResponse(
-            json.dumps(results),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in get_providers_by_specialty: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Tool: get_hospitals_by_service
-@app.route(route="tools/get_hospitals_by_service", methods=["POST"])
-def get_hospitals_by_service(req: func.HttpRequest) -> func.HttpResponse:
-    """Find hospitals that offer a specific service line."""
-    try:
-        body = req.get_json()
-        service_name = body.get("service_name")
-
-        if not service_name:
-            return func.HttpResponse(
-                json.dumps({"error": "service_name is required"}),
-                status_code=400,
-                mimetype="application/json"
-            )
-
-        client = get_graph_client()
-        safe_service = service_name.replace("'", "\\'")
-
-        query = f"""
-        g.V().has('service_line', 'name', '{safe_service}')
-          .inE('specializes_in')
-          .order().by('ranking', incr)
-          .project('hospital', 'volume', 'ranking')
-          .by(outV().values('name'))
-          .by('volume')
-          .by('ranking')
-        """
-
-        results = execute_query(client, query)
-
-        return func.HttpResponse(
-            json.dumps(results),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in get_hospitals_by_service: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Tool: analyze_rural_access
-@app.route(route="tools/analyze_rural_access", methods=["POST"])
-def analyze_rural_access(req: func.HttpRequest) -> func.HttpResponse:
-    """Analyze how rural hospitals connect to specialized services."""
-    try:
-        body = req.get_json()
-        service_name = body.get("service_name")
-
-        client = get_graph_client()
-
-        query = """
-        g.V().hasLabel('hospital').has('rural', true)
-          .project('rural_hospital', 'state')
-          .by('name')
-          .by('state')
-        """
-
-        results = execute_query(client, query)
-
-        return func.HttpResponse(
-            json.dumps(results),
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f"Error in analyze_rural_access: {e}")
-        return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
-        )
-
-
-# Import diagram generators
-from diagram_generators import (
-    generate_referral_network_diagram,
-    generate_path_diagram,
-    generate_service_network_diagram
-)
-
+# =============================================================================
+# Helper functions
+# =============================================================================
 
 def _get_all_hospitals():
     """Get all hospitals with their properties."""
@@ -414,7 +63,176 @@ def _get_all_referrals():
     return execute_query(client, query)
 
 
-# Tool: generate_referral_network_diagram
+# =============================================================================
+# Health check
+# =============================================================================
+
+@app.route(route="health", methods=["GET"])
+def health_check(req: func.HttpRequest) -> func.HttpResponse:
+    """Health check endpoint."""
+    return func.HttpResponse(
+        json.dumps({"status": "healthy", "service": "referral-network-api"}),
+        mimetype="application/json"
+    )
+
+
+# =============================================================================
+# Query Tool Endpoints
+# =============================================================================
+
+@app.route(route="tools/find_hospital", methods=["POST"])
+def find_hospital(req: func.HttpRequest) -> func.HttpResponse:
+    """Find hospitals matching the given criteria."""
+    try:
+        body = req.get_json()
+        results = query_find_hospital(
+            name=body.get("name"),
+            state=body.get("state"),
+            hospital_type=body.get("hospital_type"),
+            rural=body.get("rural")
+        )
+        return func.HttpResponse(json.dumps(results), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in find_hospital: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+@app.route(route="tools/get_referral_sources", methods=["POST"])
+def get_referral_sources(req: func.HttpRequest) -> func.HttpResponse:
+    """Find all hospitals that refer patients to the specified hospital."""
+    try:
+        body = req.get_json()
+        hospital_name = body.get("hospital_name")
+        if not hospital_name:
+            return func.HttpResponse(
+                json.dumps({"error": "hospital_name is required"}),
+                status_code=400, mimetype="application/json"
+            )
+        results = query_get_referral_sources(hospital_name)
+        return func.HttpResponse(json.dumps(results), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in get_referral_sources: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+@app.route(route="tools/get_referral_destinations", methods=["POST"])
+def get_referral_destinations(req: func.HttpRequest) -> func.HttpResponse:
+    """Find all hospitals that receive referrals from the specified hospital."""
+    try:
+        body = req.get_json()
+        hospital_name = body.get("hospital_name")
+        if not hospital_name:
+            return func.HttpResponse(
+                json.dumps({"error": "hospital_name is required"}),
+                status_code=400, mimetype="application/json"
+            )
+        results = query_get_referral_destinations(hospital_name)
+        return func.HttpResponse(json.dumps(results), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in get_referral_destinations: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+@app.route(route="tools/get_network_statistics", methods=["POST", "GET"])
+def get_network_statistics(req: func.HttpRequest) -> func.HttpResponse:
+    """Get overall statistics about the referral network."""
+    try:
+        stats = query_get_network_statistics()
+        return func.HttpResponse(json.dumps(stats), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in get_network_statistics: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+@app.route(route="tools/find_referral_path", methods=["POST"])
+def find_referral_path(req: func.HttpRequest) -> func.HttpResponse:
+    """Find referral paths between two hospitals."""
+    try:
+        body = req.get_json()
+        from_hospital = body.get("from_hospital")
+        to_hospital = body.get("to_hospital")
+        max_hops = body.get("max_hops", 3)
+        if not from_hospital or not to_hospital:
+            return func.HttpResponse(
+                json.dumps({"error": "from_hospital and to_hospital are required"}),
+                status_code=400, mimetype="application/json"
+            )
+        results = query_find_referral_path(from_hospital, to_hospital, max_hops)
+        return func.HttpResponse(json.dumps(results), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in find_referral_path: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+@app.route(route="tools/get_providers_by_specialty", methods=["POST"])
+def get_providers_by_specialty(req: func.HttpRequest) -> func.HttpResponse:
+    """Find providers by specialty and their hospital affiliations."""
+    try:
+        body = req.get_json()
+        specialty = body.get("specialty")
+        if not specialty:
+            return func.HttpResponse(
+                json.dumps({"error": "specialty is required"}),
+                status_code=400, mimetype="application/json"
+            )
+        results = query_get_providers_by_specialty(specialty)
+        return func.HttpResponse(json.dumps(results), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in get_providers_by_specialty: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+@app.route(route="tools/get_hospitals_by_service", methods=["POST"])
+def get_hospitals_by_service(req: func.HttpRequest) -> func.HttpResponse:
+    """Find hospitals that offer a specific service line."""
+    try:
+        body = req.get_json()
+        service_name = body.get("service_name")
+        if not service_name:
+            return func.HttpResponse(
+                json.dumps({"error": "service_name is required"}),
+                status_code=400, mimetype="application/json"
+            )
+        results = query_get_hospitals_by_service(service_name)
+        return func.HttpResponse(json.dumps(results), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in get_hospitals_by_service: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+@app.route(route="tools/analyze_rural_access", methods=["POST"])
+def analyze_rural_access(req: func.HttpRequest) -> func.HttpResponse:
+    """Analyze how rural hospitals connect to specialized services."""
+    try:
+        body = req.get_json()
+        service_name = body.get("service_name")
+        results = query_analyze_rural_access(service_name)
+        return func.HttpResponse(json.dumps(results), mimetype="application/json")
+    except Exception as e:
+        logging.error(f"Error in analyze_rural_access: {e}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
+        )
+
+
+# =============================================================================
+# Diagram Generation Endpoints
+# =============================================================================
+
 @app.route(route="tools/generate_referral_network_diagram", methods=["POST"])
 def api_generate_referral_network_diagram(req: func.HttpRequest) -> func.HttpResponse:
     """Generate a Mermaid diagram showing hospital referral relationships."""
@@ -424,13 +242,11 @@ def api_generate_referral_network_diagram(req: func.HttpRequest) -> func.HttpRes
         include_volumes = body.get("include_volumes", True)
         direction = body.get("direction", "LR")
 
-        client = get_graph_client()
-
-        # Get hospitals for styling
         hospitals = _get_all_hospitals()
 
         if hospital_name:
             # Get referrals for specific hospital
+            client = get_graph_client()
             safe_name = hospital_name.replace("'", "\\'")
             query = f"""
             g.V().has('hospital', 'name', '{safe_name}')
@@ -442,7 +258,6 @@ def api_generate_referral_network_diagram(req: func.HttpRequest) -> func.HttpRes
             """
             referrals = execute_query(client, query)
         else:
-            # Get all referrals
             referrals = _get_all_referrals()
 
         diagram = generate_referral_network_diagram(
@@ -460,13 +275,10 @@ def api_generate_referral_network_diagram(req: func.HttpRequest) -> func.HttpRes
     except Exception as e:
         logging.error(f"Error in generate_referral_network_diagram: {e}")
         return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
         )
 
 
-# Tool: generate_path_diagram
 @app.route(route="tools/generate_path_diagram", methods=["POST"])
 def api_generate_path_diagram(req: func.HttpRequest) -> func.HttpResponse:
     """Generate a Mermaid diagram showing paths between two hospitals."""
@@ -479,30 +291,11 @@ def api_generate_path_diagram(req: func.HttpRequest) -> func.HttpResponse:
         if not from_hospital or not to_hospital:
             return func.HttpResponse(
                 json.dumps({"error": "from_hospital and to_hospital are required"}),
-                status_code=400,
-                mimetype="application/json"
+                status_code=400, mimetype="application/json"
             )
 
-        client = get_graph_client()
-
-        # Get hospitals for styling
         hospitals = _get_all_hospitals()
-
-        # Find paths
-        safe_from = from_hospital.replace("'", "\\'")
-        safe_to = to_hospital.replace("'", "\\'")
-
-        query = f"""
-        g.V().has('hospital', 'name', '{safe_from}')
-          .repeat(out('refers_to').simplePath())
-          .until(has('name', '{safe_to}').or().loops().is(gte({max_hops})))
-          .has('name', '{safe_to}')
-          .path()
-          .by('name')
-          .limit(10)
-        """
-
-        paths = execute_query(client, query)
+        paths = query_find_referral_path(from_hospital, to_hospital, max_hops)
 
         diagram = generate_path_diagram(
             paths=paths,
@@ -518,13 +311,10 @@ def api_generate_path_diagram(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         logging.error(f"Error in generate_path_diagram: {e}")
         return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
         )
 
 
-# Tool: generate_service_network_diagram
 @app.route(route="tools/generate_service_network_diagram", methods=["POST"])
 def api_generate_service_network_diagram(req: func.HttpRequest) -> func.HttpResponse:
     """Generate a Mermaid diagram showing hospitals that provide a specific service."""
@@ -536,25 +326,10 @@ def api_generate_service_network_diagram(req: func.HttpRequest) -> func.HttpResp
         if not service_name:
             return func.HttpResponse(
                 json.dumps({"error": "service_name is required"}),
-                status_code=400,
-                mimetype="application/json"
+                status_code=400, mimetype="application/json"
             )
 
-        client = get_graph_client()
-
-        safe_service = service_name.replace("'", "\\'")
-
-        query = f"""
-        g.V().has('service_line', 'name', '{safe_service}')
-          .inE('specializes_in')
-          .order().by('ranking', incr)
-          .project('hospital', 'volume', 'ranking')
-          .by(outV().values('name'))
-          .by('volume')
-          .by('ranking')
-        """
-
-        service_data = execute_query(client, query)
+        service_data = query_get_hospitals_by_service(service_name)
 
         diagram = generate_service_network_diagram(
             service_data=service_data,
@@ -569,7 +344,5 @@ def api_generate_service_network_diagram(req: func.HttpRequest) -> func.HttpResp
     except Exception as e:
         logging.error(f"Error in generate_service_network_diagram: {e}")
         return func.HttpResponse(
-            json.dumps({"error": str(e)}),
-            status_code=500,
-            mimetype="application/json"
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
         )
