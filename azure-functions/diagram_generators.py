@@ -270,9 +270,9 @@ def generate_service_network_diagram(
         node_id = sanitize_node_id(hospital)
         escaped_name = escape_label(hospital)
 
-        # Create label with ranking if included
+        # Create label with hospital name and metrics on separate lines
         if include_rankings and ranking:
-            label = f"#{ranking}: {escaped_name}<br/>Volume: {volume}"
+            label = f"{escaped_name}<br/>Volume: {volume}<br/>Rank: {ranking}"
         else:
             label = f"{escaped_name}<br/>Volume: {volume}"
 
