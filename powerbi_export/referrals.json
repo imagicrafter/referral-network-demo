@@ -1,0 +1,98 @@
+[
+  {
+    "from_hospital_id": "hosp-004",
+    "from_hospital_name": "Regional Medical Center",
+    "to_hospital_id": "hosp-001",
+    "to_hospital_name": "Children's Mercy Kansas City",
+    "referral_count": 145,
+    "avg_acuity": 3.2
+  },
+  {
+    "from_hospital_id": "hosp-004",
+    "from_hospital_name": "Regional Medical Center",
+    "to_hospital_id": "hosp-003",
+    "to_hospital_name": "St. Louis Children's Hospital",
+    "referral_count": 34,
+    "avg_acuity": 3.4
+  },
+  {
+    "from_hospital_id": "hosp-004",
+    "from_hospital_name": "Regional Medical Center",
+    "to_hospital_id": "hosp-007",
+    "to_hospital_name": "Ozark Regional Medical",
+    "referral_count": 56,
+    "avg_acuity": 2.1
+  },
+  {
+    "from_hospital_id": "hosp-005",
+    "from_hospital_name": "Prairie Community Hospital",
+    "to_hospital_id": "hosp-001",
+    "to_hospital_name": "Children's Mercy Kansas City",
+    "referral_count": 87,
+    "avg_acuity": 2.8
+  },
+  {
+    "from_hospital_id": "hosp-005",
+    "from_hospital_name": "Prairie Community Hospital",
+    "to_hospital_id": "hosp-002",
+    "to_hospital_name": "Children's Hospital Colorado",
+    "referral_count": 23,
+    "avg_acuity": 3.0
+  },
+  {
+    "from_hospital_id": "hosp-005",
+    "from_hospital_name": "Prairie Community Hospital",
+    "to_hospital_id": "hosp-006",
+    "to_hospital_name": "Heartland Pediatrics",
+    "referral_count": 41,
+    "avg_acuity": 2.3
+  },
+  {
+    "from_hospital_id": "hosp-006",
+    "from_hospital_name": "Heartland Pediatrics",
+    "to_hospital_id": "hosp-001",
+    "to_hospital_name": "Children's Mercy Kansas City",
+    "referral_count": 62,
+    "avg_acuity": 3.5
+  },
+  {
+    "from_hospital_id": "hosp-007",
+    "from_hospital_name": "Ozark Regional Medical",
+    "to_hospital_id": "hosp-001",
+    "to_hospital_name": "Children's Mercy Kansas City",
+    "referral_count": 93,
+    "avg_acuity": 2.9
+  },
+  {
+    "from_hospital_id": "hosp-007",
+    "from_hospital_name": "Ozark Regional Medical",
+    "to_hospital_id": "hosp-003",
+    "to_hospital_name": "St. Louis Children's Hospital",
+    "referral_count": 78,
+    "avg_acuity": 3.1
+  },
+  {
+    "from_hospital_id": "hosp-001",
+    "from_hospital_name": "Children's Mercy Kansas City",
+    "to_hospital_id": "hosp-002",
+    "to_hospital_name": "Children's Hospital Colorado",
+    "referral_count": 12,
+    "avg_acuity": 4.2
+  },
+  {
+    "from_hospital_id": "hosp-001",
+    "from_hospital_name": "Children's Mercy Kansas City",
+    "to_hospital_id": "hosp-008",
+    "to_hospital_name": "Nebraska Children's",
+    "referral_count": 8,
+    "avg_acuity": 3.8
+  },
+  {
+    "from_hospital_id": "hosp-003",
+    "from_hospital_name": "St. Louis Children's Hospital",
+    "to_hospital_id": "hosp-001",
+    "to_hospital_name": "Children's Mercy Kansas City",
+    "referral_count": 15,
+    "avg_acuity": 4.0
+  }
+]

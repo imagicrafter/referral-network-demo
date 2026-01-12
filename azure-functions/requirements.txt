@@ -1,0 +1,2 @@
+azure-functions
+gremlinpython>=3.7.0

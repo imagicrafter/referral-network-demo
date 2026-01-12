@@ -1,0 +1,8 @@
+hospital_id,hospital_name,provider_id,provider_name,fte
+hosp-001,Children's Mercy Kansas City,prov-001,Dr. Sarah Chen,1.0
+hosp-001,Children's Mercy Kansas City,prov-002,Dr. Michael Roberts,1.0
+hosp-001,Children's Mercy Kansas City,prov-005,Dr. Lisa Martinez,0.8
+hosp-002,Children's Hospital Colorado,prov-003,Dr. Emily Watson,1.0
+hosp-003,St. Louis Children's Hospital,prov-004,Dr. James Park,1.0
+hosp-003,St. Louis Children's Hospital,prov-006,Dr. Robert Kim,1.0
+hosp-008,Nebraska Children's,prov-005,Dr. Lisa Martinez,0.2

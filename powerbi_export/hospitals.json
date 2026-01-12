@@ -1,0 +1,74 @@
+[
+  {
+    "id": "hosp-001",
+    "name": "Children's Mercy Kansas City",
+    "city": "Kansas City",
+    "state": "MO",
+    "type": "tertiary",
+    "beds": 354,
+    "rural": false
+  },
+  {
+    "id": "hosp-002",
+    "name": "Children's Hospital Colorado",
+    "city": "Aurora",
+    "state": "CO",
+    "type": "tertiary",
+    "beds": 434,
+    "rural": false
+  },
+  {
+    "id": "hosp-003",
+    "name": "St. Louis Children's Hospital",
+    "city": "St. Louis",
+    "state": "MO",
+    "type": "tertiary",
+    "beds": 402,
+    "rural": false
+  },
+  {
+    "id": "hosp-004",
+    "name": "Regional Medical Center",
+    "city": "Joplin",
+    "state": "MO",
+    "type": "community",
+    "beds": 85,
+    "rural": true
+  },
+  {
+    "id": "hosp-005",
+    "name": "Prairie Community Hospital",
+    "city": "Salina",
+    "state": "KS",
+    "type": "community",
+    "beds": 45,
+    "rural": true
+  },
+  {
+    "id": "hosp-006",
+    "name": "Heartland Pediatrics",
+    "city": "Topeka",
+    "state": "KS",
+    "type": "specialty",
+    "beds": 30,
+    "rural": false
+  },
+  {
+    "id": "hosp-007",
+    "name": "Ozark Regional Medical",
+    "city": "Springfield",
+    "state": "MO",
+    "type": "regional",
+    "beds": 120,
+    "rural": false
+  },
+  {
+    "id": "hosp-008",
+    "name": "Nebraska Children's",
+    "city": "Omaha",
+    "state": "NE",
+    "type": "tertiary",
+    "beds": 145,
+    "rural": false
+  }
+]

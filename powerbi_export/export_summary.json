@@ -1,0 +1,25 @@
+{
+  "export_timestamp": "2026-01-11T21:19:01.831500",
+  "record_counts": {
+    "hospitals": 8,
+    "providers": 6,
+    "service_lines": 5,
+    "referrals": 12,
+    "employment_relationships": 7,
+    "hospital_services": 9
+  },
+  "files": [
+    "hospitals.csv",
+    "hospitals.json",
+    "providers.csv",
+    "providers.json",
+    "service_lines.csv",
+    "service_lines.json",
+    "referrals.csv",
+    "referrals.json",
+    "employment.csv",
+    "employment.json",
+    "hospital_services.csv",
+    "hospital_services.json"
+  ]
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "hospital_id": "hosp-001",
+    "hospital_name": "Children's Mercy Kansas City",
+    "service_id": "svc-001",
+    "service_name": "Cardiac Surgery",
+    "volume": 850,
+    "ranking": 5
+  },
+  {
+    "hospital_id": "hosp-001",
+    "hospital_name": "Children's Mercy Kansas City",
+    "service_id": "svc-002",
+    "service_name": "Oncology",
+    "volume": 620,
+    "ranking": 12
+  },
+  {
+    "hospital_id": "hosp-001",
+    "hospital_name": "Children's Mercy Kansas City",
+    "service_id": "svc-003",
+    "service_name": "NICU",
+    "volume": 1200,
+    "ranking": 3
+  },
+  {
+    "hospital_id": "hosp-002",
+    "hospital_name": "Children's Hospital Colorado",
+    "service_id": "svc-001",
+    "service_name": "Cardiac Surgery",
+    "volume": 920,
+    "ranking": 3
+  },
+  {
+    "hospital_id": "hosp-002",
+    "hospital_name": "Children's Hospital Colorado",
+    "service_id": "svc-004",
+    "service_name": "Neurology",
+    "volume": 780,
+    "ranking": 8
+  },
+  {
+    "hospital_id": "hosp-003",
+    "hospital_name": "St. Louis Children's Hospital",
+    "service_id": "svc-001",
+    "service_name": "Cardiac Surgery",
+    "volume": 780,
+    "ranking": 8
+  },
+  {
+    "hospital_id": "hosp-003",
+    "hospital_name": "St. Louis Children's Hospital",
+    "service_id": "svc-002",
+    "service_name": "Oncology",
+    "volume": 890,
+    "ranking": 6
+  },
+  {
+    "hospital_id": "hosp-007",
+    "hospital_name": "Ozark Regional Medical",
+    "service_id": "svc-005",
+    "service_name": "General Pediatrics",
+    "volume": 2400,
+    "ranking": 25
+  },
+  {
+    "hospital_id": "hosp-008",
+    "hospital_name": "Nebraska Children's",
+    "service_id": "svc-003",
+    "service_name": "NICU",
+    "volume": 650,
+    "ranking": 15
+  }
+]

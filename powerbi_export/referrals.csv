@@ -1,0 +1,13 @@
+from_hospital_id,from_hospital_name,to_hospital_id,to_hospital_name,referral_count,avg_acuity
+hosp-004,Regional Medical Center,hosp-001,Children's Mercy Kansas City,145,3.2
+hosp-004,Regional Medical Center,hosp-003,St. Louis Children's Hospital,34,3.4
+hosp-004,Regional Medical Center,hosp-007,Ozark Regional Medical,56,2.1
+hosp-005,Prairie Community Hospital,hosp-001,Children's Mercy Kansas City,87,2.8
+hosp-005,Prairie Community Hospital,hosp-002,Children's Hospital Colorado,23,3.0
+hosp-005,Prairie Community Hospital,hosp-006,Heartland Pediatrics,41,2.3
+hosp-006,Heartland Pediatrics,hosp-001,Children's Mercy Kansas City,62,3.5
+hosp-007,Ozark Regional Medical,hosp-001,Children's Mercy Kansas City,93,2.9
+hosp-007,Ozark Regional Medical,hosp-003,St. Louis Children's Hospital,78,3.1
+hosp-001,Children's Mercy Kansas City,hosp-002,Children's Hospital Colorado,12,4.2
+hosp-001,Children's Mercy Kansas City,hosp-008,Nebraska Children's,8,3.8
+hosp-003,St. Louis Children's Hospital,hosp-001,Children's Mercy Kansas City,15,4.0

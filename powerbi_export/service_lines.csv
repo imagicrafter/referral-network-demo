@@ -1,0 +1,6 @@
+id,name,category
+svc-001,Cardiac Surgery,surgical
+svc-002,Oncology,medical
+svc-003,NICU,critical_care
+svc-004,Neurology,medical
+svc-005,General Pediatrics,primary

@@ -1,0 +1,51 @@
+[
+  {
+    "hospital_id": "hosp-001",
+    "hospital_name": "Children's Mercy Kansas City",
+    "provider_id": "prov-001",
+    "provider_name": "Dr. Sarah Chen",
+    "fte": 1.0
+  },
+  {
+    "hospital_id": "hosp-001",
+    "hospital_name": "Children's Mercy Kansas City",
+    "provider_id": "prov-002",
+    "provider_name": "Dr. Michael Roberts",
+    "fte": 1.0
+  },
+  {
+    "hospital_id": "hosp-001",
+    "hospital_name": "Children's Mercy Kansas City",
+    "provider_id": "prov-005",
+    "provider_name": "Dr. Lisa Martinez",
+    "fte": 0.8
+  },
+  {
+    "hospital_id": "hosp-002",
+    "hospital_name": "Children's Hospital Colorado",
+    "provider_id": "prov-003",
+    "provider_name": "Dr. Emily Watson",
+    "fte": 1.0
+  },
+  {
+    "hospital_id": "hosp-003",
+    "hospital_name": "St. Louis Children's Hospital",
+    "provider_id": "prov-004",
+    "provider_name": "Dr. James Park",
+    "fte": 1.0
+  },
+  {
+    "hospital_id": "hosp-003",
+    "hospital_name": "St. Louis Children's Hospital",
+    "provider_id": "prov-006",
+    "provider_name": "Dr. Robert Kim",
+    "fte": 1.0
+  },
+  {
+    "hospital_id": "hosp-008",
+    "hospital_name": "Nebraska Children's",
+    "provider_id": "prov-005",
+    "provider_name": "Dr. Lisa Martinez",
+    "fte": 0.2
+  }
+]

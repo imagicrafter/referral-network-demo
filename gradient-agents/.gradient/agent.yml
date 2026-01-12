@@ -1,0 +1,3 @@
+agent_name: referral-network-agent
+agent_environment: referral-network-demo
+entrypoint_file: main.py

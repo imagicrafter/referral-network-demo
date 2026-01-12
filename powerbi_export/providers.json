@@ -1,0 +1,38 @@
+[
+  {
+    "id": "prov-001",
+    "name": "Dr. Sarah Chen",
+    "specialty": "Pediatric Cardiology",
+    "npi": "1234567890"
+  },
+  {
+    "id": "prov-002",
+    "name": "Dr. Michael Roberts",
+    "specialty": "Pediatric Oncology",
+    "npi": "2345678901"
+  },
+  {
+    "id": "prov-003",
+    "name": "Dr. Emily Watson",
+    "specialty": "Pediatric Neurology",
+    "npi": "3456789012"
+  },
+  {
+    "id": "prov-004",
+    "name": "Dr. James Park",
+    "specialty": "Pediatric Surgery",
+    "npi": "4567890123"
+  },
+  {
+    "id": "prov-005",
+    "name": "Dr. Lisa Martinez",
+    "specialty": "Neonatology",
+    "npi": "5678901234"
+  },
+  {
+    "id": "prov-006",
+    "name": "Dr. Robert Kim",
+    "specialty": "Pediatric Cardiology",
+    "npi": "6789012345"
+  }
+]

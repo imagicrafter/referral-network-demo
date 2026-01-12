@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+
+# Environments
+.env
+*.env
+local.settings.json
+
+# Editor files
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+
+# Claude Code
+.claude/
+
+# Azure Functions local settings
+azure-functions/local.settings.json

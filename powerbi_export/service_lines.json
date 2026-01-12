@@ -1,0 +1,27 @@
+[
+  {
+    "id": "svc-001",
+    "name": "Cardiac Surgery",
+    "category": "surgical"
+  },
+  {
+    "id": "svc-002",
+    "name": "Oncology",
+    "category": "medical"
+  },
+  {
+    "id": "svc-003",
+    "name": "NICU",
+    "category": "critical_care"
+  },
+  {
+    "id": "svc-004",
+    "name": "Neurology",
+    "category": "medical"
+  },
+  {
+    "id": "svc-005",
+    "name": "General Pediatrics",
+    "category": "primary"
+  }
+]

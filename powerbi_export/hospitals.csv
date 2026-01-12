@@ -1,0 +1,9 @@
+id,name,city,state,type,beds,rural
+hosp-001,Children's Mercy Kansas City,Kansas City,MO,tertiary,354,False
+hosp-002,Children's Hospital Colorado,Aurora,CO,tertiary,434,False
+hosp-003,St. Louis Children's Hospital,St. Louis,MO,tertiary,402,False
+hosp-004,Regional Medical Center,Joplin,MO,community,85,True
+hosp-005,Prairie Community Hospital,Salina,KS,community,45,True
+hosp-006,Heartland Pediatrics,Topeka,KS,specialty,30,False
+hosp-007,Ozark Regional Medical,Springfield,MO,regional,120,False
+hosp-008,Nebraska Children's,Omaha,NE,tertiary,145,False
