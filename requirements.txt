@@ -1,4 +1,4 @@
-# Core dependencies for referral-network-demo
+# Core dependencies for healthcare-graph-agent
 # Install with: pip install -r requirements.txt
 
 # Graph database
@@ -6,6 +6,9 @@ gremlinpython>=3.7.0
 
 # Environment configuration
 python-dotenv>=1.0.0
+
+# YAML configuration
+pyyaml>=6.0
 
 # Azure OpenAI (for Azure agent)
 openai>=1.0.0

@@ -1,7 +1,7 @@
 [project]
-name = "referral-network-demo"
-version = "1.0.0"
-description = "Hospital referral network analytics demo with AI agent integration"
+name = "healthcare-graph-agent"
+version = "2.0.0"
+description = "Modular healthcare analytics platform with AI agent and graph database integration"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -13,6 +13,7 @@ keywords = ["healthcare", "referral-network", "graph-database", "cosmos-db", "ai
 dependencies = [
     "gremlinpython>=3.7.0",
     "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -73,4 +74,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "cli*", "scripts*"]
+include = ["src*", "cli*", "scripts*", "config*"]

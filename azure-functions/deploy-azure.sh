@@ -78,6 +78,13 @@ else
   echo "Skipping Cosmos DB configuration. Set it later in Azure Portal."
 fi
 
+# Copy shared src/ directory for deployment
+echo ""
+echo "=== Preparing Deployment Package ==="
+echo "Copying shared src/ directory..."
+cp -r ../src ./src
+echo "src/ directory copied successfully"
+
 # Publish the functions
 echo ""
 echo "=== Publishing Functions ==="

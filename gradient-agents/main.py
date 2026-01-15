@@ -24,9 +24,21 @@ from gradient_adk import entrypoint
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
-# Import from shared modules
-from src.tools.definitions import TOOL_DEFINITIONS
+# Import from core modules
+from src.core.tool_registry import ToolRegistry
 from src.prompts.system_prompts import SYSTEM_PROMPT
+
+# Initialize registry
+_registry = None
+
+
+def get_registry():
+    """Get or create the tool registry singleton."""
+    global _registry
+    if _registry is None:
+        _registry = ToolRegistry()
+        _registry.load_domains()
+    return _registry
 
 # Configuration
 GRADIENT_MODEL = os.getenv("GRADIENT_MODEL", "openai-gpt-oss-120b")
@@ -38,18 +50,8 @@ BACKEND_API_KEY = os.getenv("BACKEND_API_KEY", "")
 
 
 def get_tools_schema() -> List[Dict]:
-    """Convert tool definitions to OpenAI-compatible function calling format."""
-    tools = []
-    for tool_def in TOOL_DEFINITIONS:
-        tools.append({
-            "type": "function",
-            "function": {
-                "name": tool_def["name"],
-                "description": tool_def["description"],
-                "parameters": tool_def["parameters"]
-            }
-        })
-    return tools
+    """Get tool definitions in OpenAI-compatible function calling format."""
+    return get_registry().get_openai_tools()
 
 
 async def execute_tool(tool_name: str, tool_args: Dict) -> str:

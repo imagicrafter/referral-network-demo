@@ -1,0 +1,46 @@
+# Domain configuration for healthcare-graph-agent
+# Controls which analytics domains are enabled and their dependencies
+
+version: "1.0"
+
+defaults:
+  # Default settings applied to all domains unless overridden
+  max_tool_timeout: 30  # seconds
+
+domains:
+  referral_network:
+    enabled: true
+    name: "Referral Network Analytics"
+    description: "Hospital referral flow analysis and visualization"
+    version: "1.0.0"
+    depends_on: []  # No dependencies - foundational domain
+    module: "src.domains.referral_network"
+
+    tools:
+      - find_hospital
+      - get_referral_sources
+      - get_referral_destinations
+      - get_network_statistics
+      - find_referral_path
+      - get_providers_by_specialty
+      - get_hospitals_by_service
+      - analyze_rural_access
+      - generate_referral_network_diagram
+      - generate_path_diagram
+      - generate_service_network_diagram
+
+    vertex_types:
+      - hospital
+      - provider
+      - service_line
+
+    edge_types:
+      - refers_to
+      - employs
+      - specializes_in
+
+  # Placeholder for Phase 2 - Quality Improvement domain
+  # quality_improvement:
+  #   enabled: false
+  #   depends_on: [referral_network]
+  #   module: "src.domains.quality_improvement"

@@ -1,7 +1,7 @@
-# Makefile for referral-network-demo
+# Makefile for healthcare-graph-agent
 # Common tasks for development, testing, and deployment
 
-.PHONY: help install install-dev test lint format typecheck clean run-agent deploy-azure load-data
+.PHONY: help install install-dev test lint format typecheck clean run-agent deploy-azure load-data validate-config list-tools list-domains test-domain test-core
 
 help:
 	@echo "Available commands:"
@@ -15,6 +15,13 @@ help:
 	@echo "  make run-agent     - Run the agent (uses AGENT_PROVIDER from .env)"
 	@echo "  make deploy-azure  - Deploy Azure Functions"
 	@echo "  make load-data     - Load sample data into Cosmos DB"
+	@echo ""
+	@echo "Modular architecture commands:"
+	@echo "  make validate-config - Validate domain configuration"
+	@echo "  make list-tools      - List all available tools"
+	@echo "  make list-domains    - List enabled domains"
+	@echo "  make test-core       - Run core tests"
+	@echo "  make test-domain DOMAIN=<name> - Run tests for a specific domain"
 
 # Installation
 install:
@@ -80,3 +87,20 @@ explore-data:
 
 export-powerbi:
 	python scripts/export_for_powerbi.py
+
+# Modular architecture
+validate-config:
+	python -c "from src.core.tool_registry import ToolRegistry; r = ToolRegistry(); r.load_domains(); print('Config valid, loaded', len(r.list_tools()), 'tools')"
+
+list-tools:
+	python -c "from src.core.tool_registry import ToolRegistry; r = ToolRegistry(); r.load_domains(); print('\\n'.join(r.list_tools()))"
+
+list-domains:
+	python -c "from src.core.tool_registry import ToolRegistry; r = ToolRegistry(); print('\\n'.join(r.get_enabled_domains()))"
+
+# Test by domain
+test-domain:
+	pytest tests/domains/$(DOMAIN)/ -v
+
+test-core:
+	pytest tests/core/ -v

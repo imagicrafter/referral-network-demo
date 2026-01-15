@@ -7,6 +7,7 @@ license: MIT
 """
 
 import json
+import re
 import httpx
 from typing import List, Union, Dict, Any
 from pydantic import BaseModel, Field
@@ -121,7 +122,7 @@ class Pipe:
                 "type": "function",
                 "function": {
                     "name": "find_referral_path",
-                    "description": "Find referral paths between two hospitals",
+                    "description": "Get RAW DATA about referral paths (returns JSON list). Use ONLY for data analysis, NOT for visualization. For diagrams, use generate_path_diagram instead.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -195,7 +196,7 @@ class Pipe:
                 "type": "function",
                 "function": {
                     "name": "generate_path_diagram",
-                    "description": "Generate a Mermaid diagram showing referral paths between two hospitals. Use this when asked to visualize paths or routes between hospitals.",
+                    "description": "REQUIRED for path visualization. Returns a complete Mermaid diagram showing referral paths between hospitals. Always use this (not find_referral_path) when asked to show, visualize, diagram, or draw paths.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -230,23 +231,26 @@ IMPORTANT: You MUST use the available tools to answer questions about the networ
 
 Available tools:
 
-DATA QUERY TOOLS:
-- get_network_statistics: Get overall network stats (hospitals, providers, referrals)
+DATA QUERY TOOLS (return raw JSON data for analysis):
+- get_network_statistics: Get overall network stats
 - find_hospital: Search for hospitals by name, state, type, or rural status
 - get_referral_sources: Find hospitals that refer TO a specific hospital
 - get_referral_destinations: Find hospitals that receive referrals FROM a hospital
-- find_referral_path: Find referral paths between two hospitals
+- find_referral_path: Raw path data ONLY - do NOT use for visualization
 - get_providers_by_specialty: Find providers by medical specialty
 - get_hospitals_by_service: Find hospitals offering a specific service
 - analyze_rural_access: Analyze rural hospital access patterns
 
-DIAGRAM GENERATION TOOLS (use when asked to visualize/show/diagram):
-- generate_referral_network_diagram: Create a Mermaid diagram of hospital referral relationships
-- generate_path_diagram: Create a Mermaid diagram showing paths between two hospitals
-- generate_service_network_diagram: Create a Mermaid diagram showing hospitals that offer a service
+DIAGRAM TOOLS (return ready-to-display Mermaid diagrams):
+- generate_referral_network_diagram: Diagram of hospital referral relationships
+- generate_path_diagram: Diagram of paths between two hospitals
+- generate_service_network_diagram: Diagram of hospitals offering a service
 
-When the user asks to "show", "visualize", "diagram", or "draw" something, use the appropriate diagram tool.
-The diagram tools return Mermaid markdown that will render as visual diagrams.
+TOOL SELECTION RULES:
+- If user says "show", "visualize", "diagram", "draw", or "display" → Use a DIAGRAM tool
+- For paths between hospitals with visualization → Use generate_path_diagram (NOT find_referral_path)
+- For referral network visualization → Use generate_referral_network_diagram
+- For service network visualization → Use generate_service_network_diagram
 
 The hospitals in the database include:
 - Children's Mercy Kansas City (tertiary, MO)
@@ -261,7 +265,14 @@ The hospitals in the database include:
 Service lines include: Cardiac Surgery, NICU, Oncology, Neurology, Orthopedics
 
 After receiving tool results, summarize the findings clearly for healthcare administrators.
-When returning diagrams, include the full Mermaid code block so it renders properly."""
+
+CRITICAL RULES FOR DIAGRAMS:
+1. Diagram tools return a complete Mermaid code block (starting with ```mermaid). Output it EXACTLY as returned - do not modify, rewrite, or regenerate it.
+2. NEVER write your own Mermaid code. The tools return working diagrams with proper styling.
+3. AFTER outputting the diagram verbatim, add a **Color Key** in plain text:
+   - Referral network: Green = Tertiary, Blue = Community, Purple = Regional, Pink = Specialty, Orange = Rural
+   - Path diagrams: Green border = Start, Red border = End
+   - Service diagrams: Gold = #1 ranked, Silver = Top 3, Bronze = Other"""
 
     def pipes(self) -> List[dict]:
         """Return available models/pipes."""
@@ -314,6 +325,13 @@ When returning diagrams, include the full Mermaid code block so it renders prope
                 traceback.print_exc()
             return error_msg
 
+    # Diagram tool names for special handling
+    DIAGRAM_TOOLS = {
+        "generate_referral_network_diagram",
+        "generate_path_diagram",
+        "generate_service_network_diagram"
+    }
+
     def _process_with_tools(self, messages: List[Dict]) -> str:
         """Process conversation with tool calling loop."""
 
@@ -322,6 +340,9 @@ When returning diagrams, include the full Mermaid code block so it renders prope
             "Authorization": f"Bearer {self.valves.GRADIENT_MODEL_ACCESS_KEY.strip()}",
             "Content-Type": "application/json",
         }
+
+        # Track diagram outputs for direct injection
+        diagram_outputs = []
 
         for iteration in range(self.valves.MAX_TOOL_ITERATIONS):
             if self.valves.DEBUG_MODE:
@@ -366,7 +387,8 @@ When returning diagrams, include the full Mermaid code block so it renders prope
             if finish_reason == "stop" or not tool_calls:
                 content = message.get("content", "")
                 if content:
-                    return content
+                    # Inject diagram outputs if the LLM didn't include them correctly
+                    return self._ensure_diagrams_included(content, diagram_outputs)
                 else:
                     return "No response generated. The model did not return any content."
 
@@ -399,6 +421,28 @@ When returning diagrams, include the full Mermaid code block so it renders prope
                     if self.valves.DEBUG_MODE:
                         print(f"[Gradient Pipe] Tool result: {tool_result[:500]}...")
 
+                    # Capture diagram outputs for direct injection
+                    if tool_name in self.DIAGRAM_TOOLS:
+                        if tool_result.startswith("```mermaid"):
+                            diagram_outputs.append({
+                                "tool": tool_name,
+                                "diagram": tool_result,
+                                "args": tool_args,
+                                "error": None
+                            })
+                            if self.valves.DEBUG_MODE:
+                                print(f"[Gradient Pipe] Captured diagram from {tool_name}")
+                        else:
+                            # Diagram tool returned an error or unexpected result
+                            diagram_outputs.append({
+                                "tool": tool_name,
+                                "diagram": None,
+                                "args": tool_args,
+                                "error": tool_result
+                            })
+                            if self.valves.DEBUG_MODE:
+                                print(f"[Gradient Pipe] Diagram tool {tool_name} returned error: {tool_result[:200]}")
+
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call_id,
@@ -406,6 +450,100 @@ When returning diagrams, include the full Mermaid code block so it renders prope
                     })
 
         return "Maximum iterations reached. Please try a simpler query."
+
+    def _ensure_diagrams_included(self, content: str, diagram_outputs: List[Dict]) -> str:
+        """
+        Ensure diagram tool outputs are correctly included in the response.
+
+        LLMs often generate their own diagrams instead of using tool outputs.
+        This method validates and injects the correct diagrams.
+        """
+        if not diagram_outputs:
+            return content
+
+        # Check for diagram errors first - if all diagrams failed, add error message
+        errors = [d for d in diagram_outputs if d.get("error")]
+        valid_diagrams = [d for d in diagram_outputs if d.get("diagram")]
+
+        if errors and not valid_diagrams:
+            # All diagram tools failed - add clear error message
+            error_msg = "\n\n⚠️ **Diagram Generation Failed**\n\n"
+            error_msg += "The system was unable to generate the requested diagram. "
+            error_msg += "This may be due to:\n"
+            error_msg += "- No matching data found in the database\n"
+            error_msg += "- Invalid hospital names or parameters\n"
+            error_msg += "- A temporary service issue\n\n"
+            error_msg += "Please verify the hospital names and try again, or contact support if the issue persists."
+
+            # Remove any LLM-generated mermaid blocks
+            content = self._remove_invalid_mermaid(content)
+            return content + error_msg
+
+        # Check if the response contains valid mermaid from our tools
+        # A valid diagram from our tools will have our specific node ID format (e.g., CMKC_xxxx)
+        has_valid_diagram = False
+        if "```mermaid" in content:
+            # Our diagrams have patterns like: CMKC_1234["Hospital Name"]
+            if re.search(r'\b[A-Z]{2,}[A-Z]*_[a-f0-9]{4}\b', content):
+                has_valid_diagram = True
+
+        if has_valid_diagram:
+            if self.valves.DEBUG_MODE:
+                print("[Gradient Pipe] Response contains valid diagram from tool")
+            return content
+
+        # The LLM generated its own diagram or omitted it - inject the correct one
+        if self.valves.DEBUG_MODE:
+            print("[Gradient Pipe] Injecting correct diagram(s) into response")
+
+        # Remove any malformed mermaid blocks the LLM generated
+        content = self._remove_invalid_mermaid(content)
+
+        # Build the correct diagram section (only valid diagrams)
+        diagram_section = "\n\n"
+        for diagram_info in valid_diagrams:
+            diagram_section += diagram_info["diagram"] + "\n\n"
+
+        # Add color key based on diagram type
+        if valid_diagrams:
+            tool_name = valid_diagrams[0]["tool"]
+            if tool_name == "generate_referral_network_diagram":
+                diagram_section += """**Color Key:**
+- 🟢 Green = Tertiary hospitals
+- 🔵 Blue = Community hospitals
+- 🟣 Purple = Regional hospitals
+- 🩷 Pink = Specialty hospitals
+- 🟠 Orange = Rural hospitals
+"""
+            elif tool_name == "generate_path_diagram":
+                diagram_section += """**Color Key:**
+- 🟢 Green (thick border) = Start hospital
+- 🔴 Red (thick border) = End hospital
+"""
+            elif tool_name == "generate_service_network_diagram":
+                diagram_section += """**Color Key:**
+- 🥇 Gold = #1 ranked
+- 🥈 Silver = Top 3
+- 🥉 Bronze = Other providers
+"""
+
+        # Insert diagram after the first paragraph or at the start
+        lines = content.split('\n\n', 1)
+        if len(lines) > 1:
+            return lines[0] + diagram_section + lines[1]
+        else:
+            return content + diagram_section
+
+    def _remove_invalid_mermaid(self, text: str) -> str:
+        """Remove mermaid code blocks that weren't generated by our tools."""
+        pattern = r'```mermaid\n[\s\S]*?```'
+        matches = list(re.finditer(pattern, text))
+        for match in reversed(matches):
+            block = match.group()
+            # Check if this block has our node ID pattern (initials + underscore + hash)
+            if not re.search(r'\b[A-Z]{2,}[A-Z]*_[a-f0-9]{4}\b', block):
+                text = text[:match.start()] + text[match.end():]
+        return text
 
     def _execute_tool(self, tool_name: str, tool_args: Dict) -> str:
         """Execute a tool by calling the Azure Functions backend."""

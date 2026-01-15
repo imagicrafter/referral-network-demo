@@ -1,47 +1,30 @@
 """
-Mermaid diagram generators for hospital referral network.
+Mermaid diagram generators for referral network domain.
+
 Generates valid Mermaid syntax from Cosmos DB graph data.
 """
-import json
-import hashlib
+import logging
 from typing import Dict, List, Optional, Any
 
-
-def sanitize_node_id(name: str) -> str:
-    """
-    Convert hospital/entity name to valid Mermaid node ID.
-    Uses first letters of each word plus a short hash for uniqueness.
-    """
-    # Remove special characters and split into words
-    clean_name = name.replace("'", "").replace(".", "").replace("-", " ")
-    words = clean_name.split()
-
-    # Take first letter of each word
-    initials = "".join(word[0].upper() for word in words if word)
-
-    # Add short hash for uniqueness (handles "Regional Medical Center" vs "Rural Medical Center")
-    name_hash = hashlib.md5(name.encode()).hexdigest()[:4]
-
-    return f"{initials}_{name_hash}"
-
-
-def escape_label(text: str) -> str:
-    """Escape special characters for Mermaid labels."""
-    return text.replace('"', "'").replace("<", "&lt;").replace(">", "&gt;")
+from src.core.diagram_base import (
+    sanitize_node_id,
+    escape_label,
+    COLORS,
+)
 
 
 def get_hospital_style(hospital_type: str, is_rural: bool = False) -> str:
     """Get Mermaid style based on hospital type."""
     if is_rural:
-        return "fill:#FF9800,color:#fff"  # Orange for rural
+        return f"fill:{COLORS['rural']},color:#fff"
 
     styles = {
-        "tertiary": "fill:#4CAF50,color:#fff",      # Green
-        "community": "fill:#2196F3,color:#fff",      # Blue
-        "regional": "fill:#9C27B0,color:#fff",       # Purple
-        "specialty": "fill:#E91E63,color:#fff",      # Pink
+        "tertiary": f"fill:{COLORS['tertiary']},color:#fff",
+        "community": f"fill:{COLORS['community']},color:#fff",
+        "regional": f"fill:{COLORS['regional']},color:#fff",
+        "specialty": f"fill:{COLORS['specialty']},color:#fff",
     }
-    return styles.get(hospital_type, "fill:#607D8B,color:#fff")  # Default gray
+    return styles.get(hospital_type, f"fill:{COLORS['default']},color:#fff")
 
 
 def _analyze_diagram_complexity(
@@ -88,10 +71,10 @@ def _generate_hospital_type_legend(types_present: set, has_rural: bool) -> tuple
         (legend_lines, style_lines) tuple - lines to add to diagram
     """
     type_config = {
-        'tertiary': ('LT', 'Tertiary', '#4CAF50'),
-        'community': ('LC', 'Community', '#2196F3'),
-        'regional': ('LR', 'Regional', '#9C27B0'),
-        'specialty': ('LS', 'Specialty', '#E91E63'),
+        'tertiary': ('LT', 'Tertiary', COLORS['tertiary']),
+        'community': ('LC', 'Community', COLORS['community']),
+        'regional': ('LR', 'Regional', COLORS['regional']),
+        'specialty': ('LS', 'Specialty', COLORS['specialty']),
     }
 
     legend_lines = ['    subgraph Legend[" "]']
@@ -104,7 +87,7 @@ def _generate_hospital_type_legend(types_present: set, has_rural: bool) -> tuple
 
     if has_rural:
         legend_lines.append('        LRural["Rural"]')
-        style_lines.append('    style LRural fill:#FF9800,color:#fff')
+        style_lines.append(f'    style LRural fill:{COLORS["rural"]},color:#fff')
 
     legend_lines.append('    end')
 
@@ -265,6 +248,7 @@ def generate_path_diagram(
             count = ref.get('count', 0)
             if from_name and to_name:
                 volume_lookup[(from_name, to_name)] = count
+
     # Handle empty or invalid paths
     if not paths:
         from_escaped = escape_label(from_hospital)
@@ -272,7 +256,6 @@ def generate_path_diagram(
         return f'```mermaid\ngraph LR\n    NO_PATH["No path found from {from_escaped} to {to_escaped}"]\n```'
 
     # Debug: Log what we received (remove in production)
-    import logging
     logging.info(f"[generate_path_diagram] Received paths type: {type(paths)}")
     logging.info(f"[generate_path_diagram] Received paths: {paths[:3] if len(paths) > 3 else paths}")
     if paths:
@@ -340,9 +323,9 @@ def generate_path_diagram(
 
                 # Highlight start and end
                 if hospital == from_hospital:
-                    styles.append(f"    style {node_id} fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:3px")
+                    styles.append(f"    style {node_id} fill:{COLORS['start']},color:#fff,stroke:#2E7D32,stroke-width:3px")
                 elif hospital == to_hospital:
-                    styles.append(f"    style {node_id} fill:#F44336,color:#fff,stroke:#C62828,stroke-width:3px")
+                    styles.append(f"    style {node_id} fill:{COLORS['end']},color:#fff,stroke:#C62828,stroke-width:3px")
                 else:
                     styles.append(f"    style {node_id} {get_hospital_style(h_type, is_rural)}")
 
@@ -464,8 +447,8 @@ def generate_service_network_diagram(
 
     # Add hospital nodes
     nodes = []
-    edges = []
-    styles = [f"    style {service_id} fill:#673AB7,color:#fff,stroke:#4527A0,stroke-width:2px"]
+    edge_lines = []
+    styles = [f"    style {service_id} fill:{COLORS['service']},color:#fff,stroke:#4527A0,stroke-width:2px"]
 
     for item in service_data:
         hospital = item.get('hospital', '')
@@ -485,11 +468,11 @@ def generate_service_network_diagram(
             label = f"{escaped_name} | Vol: {volume}"
 
         nodes.append(f'    {node_id}["{label}"]')
-        edges.append(f"    {service_id} --> {node_id}")
+        edge_lines.append(f"    {service_id} --> {node_id}")
 
         # Color based on ranking
         if ranking == 1:
-            styles.append(f"    style {node_id} fill:#FFD700,color:#000")  # Gold
+            styles.append(f"    style {node_id} fill:{COLORS['highlight']},color:#000")  # Gold
         elif ranking <= 3:
             styles.append(f"    style {node_id} fill:#C0C0C0,color:#000")  # Silver
         else:
@@ -497,7 +480,7 @@ def generate_service_network_diagram(
 
     lines.extend(nodes)
     lines.append("")
-    lines.extend(edges)
+    lines.extend(edge_lines)
     lines.append("")
     lines.extend(styles)
 
@@ -527,7 +510,7 @@ def generate_provider_diagram(
     lines = ["graph TD"]
 
     nodes = []
-    edges = []
+    edge_lines = []
     styles = []
 
     # Group by specialty if not filtered
@@ -555,22 +538,22 @@ def generate_provider_diagram(
 
         if specialty:
             spec_id = sanitize_node_id(specialty)
-            edges.append(f"    {spec_id} --> {prov_id}")
+            edge_lines.append(f"    {spec_id} --> {prov_id}")
 
         if hospital and hospital not in seen_hospitals:
             hosp_id = sanitize_node_id(hospital)
             escaped_hosp = escape_label(hospital)
             nodes.append(f'    {hosp_id}["{escaped_hosp}"]')
             seen_hospitals.add(hospital)
-            styles.append(f"    style {hosp_id} fill:#4CAF50,color:#fff")
+            styles.append(f"    style {hosp_id} fill:{COLORS['tertiary']},color:#fff")
 
         if hospital:
             hosp_id = sanitize_node_id(hospital)
-            edges.append(f"    {prov_id} -.-> {hosp_id}")
+            edge_lines.append(f"    {prov_id} -.-> {hosp_id}")
 
     lines.extend(nodes)
     lines.append("")
-    lines.extend(edges)
+    lines.extend(edge_lines)
     lines.append("")
     lines.extend(styles)
 

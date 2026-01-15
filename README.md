@@ -1,6 +1,6 @@
-# Referral Network Analytics Agent
+# Healthcare Graph Agent
 
-A CLI-based AI agent for querying healthcare referral network data. Supports multiple LLM backends: **Azure OpenAI** and **DigitalOcean Gradient**.
+A modular healthcare analytics platform with AI agent capabilities for querying graph databases. Supports multiple LLM backends (**Azure OpenAI**, **DigitalOcean Gradient**) and pluggable analytics domains.
 
 ## Architecture
 
@@ -211,6 +211,45 @@ For detailed Azure service documentation, see **[docs/azure_service_dependencies
 │   (Frontend)    │     │  (LLM + Tools)  │     │  (Backend API)  │     │  (Graph DB)     │
 └─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
+
+### Deploying Azure Functions
+
+The Azure Functions backend requires the shared `src/` directory which contains tool implementations and diagram generators.
+
+**Project Structure:**
+```
+healthcare-graph-agent/
+├── src/                      # ✅ Shared modules (IN GIT)
+│   ├── tools/
+│   │   ├── diagram_generators.py
+│   │   ├── definitions.py
+│   │   └── queries.py
+│   └── cosmos_connection.py
+├── azure-functions/          # ✅ Azure Functions code (IN GIT)
+│   ├── function_app.py
+│   ├── deploy-azure.sh
+│   └── src/                  # ❌ Deployment copy (GITIGNORED)
+```
+
+**Deploy using the script:**
+```bash
+cd azure-functions
+./deploy-azure.sh
+```
+
+The `deploy-azure.sh` script automatically:
+1. Copies `src/` from the repo root into `azure-functions/src/`
+2. Publishes everything to Azure Functions
+3. The copied `src/` is gitignored to avoid duplication
+
+**Manual deployment:**
+```bash
+cd azure-functions
+cp -r ../src ./src                                    # Copy shared modules
+func azure functionapp publish referral-network-api --python
+```
+
+### Deploying Gradient Agent
 
 Quick deploy (after setting up Azure Functions):
 
@@ -591,39 +630,89 @@ python load_sample_data.py
 
 ## Project Structure
 
+The project uses a **modular domain architecture** with a central tool registry:
+
 ```
-referral-network-demo/
-├── run_agent.py          # Unified launcher (supports both providers)
-├── referral_agent.py     # Azure OpenAI agent (standalone)
-├── network_cli.py        # CLI interface for database tools
-├── agent_tools.py        # Tool definitions and implementations
-├── cosmos_connection.py  # Azure Cosmos DB Gremlin connection
-├── load_sample_data.py   # Load sample data into the graph
-├── explore_graph.py      # Utility for exploring the graph
-├── .env                  # Environment configuration (not in git)
-├── requirements.txt      # Python dependencies
-├── README.md
-├── DEPLOY.md             # Full deployment guide
-├── docs/                 # Additional documentation
-│   └── azure_service_dependencies.md  # Azure services architecture & costs
-├── pipes/                # Open WebUI integration
-│   ├── gradient-inference-pipe.py  # Option A: Direct Serverless Inference (recommended)
+healthcare-graph-agent/
+├── config/                       # Configuration files
+│   └── domains.yaml              # Domain enable/disable and tool lists
+│
+├── src/
+│   ├── core/                     # Shared infrastructure
+│   │   ├── tool_registry.py      # Dynamic tool registration
+│   │   ├── cosmos_connection.py  # Database connection helper
+│   │   ├── diagram_base.py       # Base diagram utilities
+│   │   └── exceptions.py         # Custom exceptions
+│   │
+│   ├── domains/                  # Feature modules (pluggable)
+│   │   └── referral_network/     # Referral network analytics
+│   │       ├── tools.py          # Tool implementations & definitions
+│   │       ├── diagrams.py       # Mermaid diagram generators
+│   │       └── schema.py         # Vertex/edge type definitions
+│   │
+│   └── prompts/                  # Shared across domains
+│       └── system_prompts.py
+│
+├── cli/
+│   ├── run_agent.py              # Unified launcher (supports both providers)
+│   └── network_cli.py            # CLI interface for database tools
+│
+├── azure-functions/              # Backend API for tool execution
+│   └── function_app.py           # Azure Functions with tool endpoints
+│
+├── gradient-agents/              # Gradient ADK agent for deployment
+│   └── main.py                   # Gradient agent entrypoint
+│
+├── pipes/                        # Open WebUI integration
+│   ├── gradient-inference-pipe.py  # Option A: Direct Serverless Inference
 │   └── do-function-pipe.py         # Option B: DO ADK deployed agent
-├── gradient-agents/      # Gradient ADK agent for deployment
-│   ├── .gradient/
-│   │   └── agent.yml     # Gradient agent configuration
-│   ├── main.py           # Gradient agent entrypoint (calls backend API)
-│   ├── deploy.sh         # Deployment script
-│   ├── requirements.txt  # Gradient-specific dependencies
-│   └── .env              # Environment configuration
-└── azure-functions/      # Backend API for tool execution
-    ├── function_app.py   # Azure Functions with tool endpoints
-    ├── cosmos_connection.py  # Cosmos DB connection
-    ├── diagram_generators.py # Mermaid diagram generation logic
-    ├── deploy-azure.sh   # Deployment script for Azure Functions
-    ├── host.json         # Azure Functions configuration
-    ├── requirements.txt  # Function dependencies
-    └── local.settings.json.example  # Example settings
+│
+├── tests/                        # Test infrastructure
+│   ├── conftest.py               # Shared fixtures
+│   ├── core/                     # Core module tests
+│   └── domains/                  # Domain-specific tests
+│
+├── docs/                         # Documentation
+│   ├── architecture.md           # Architecture overview
+│   ├── adding_domains.md         # Guide for new domains
+│   └── azure_service_dependencies.md
+│
+├── Makefile                      # Build and development commands
+├── pyproject.toml                # Project configuration
+├── requirements.txt              # Python dependencies
+└── .env                          # Environment configuration (not in git)
+```
+
+### Modular Architecture
+
+The platform uses a **ToolRegistry** pattern that dynamically loads tools from enabled domains:
+
+```python
+from src.core.tool_registry import ToolRegistry
+
+registry = ToolRegistry()
+registry.load_domains()
+
+# Get all tools
+tools = registry.get_all_tools()
+result = tools["find_hospital"](name="Children's")
+
+# Get tool definitions for LLM
+definitions = registry.get_openai_tools()
+```
+
+### Adding New Domains
+
+See [docs/adding_domains.md](docs/adding_domains.md) for a guide on adding new analytics domains.
+
+### Make Commands
+
+```bash
+make validate-config   # Validate domain configuration
+make list-tools        # List all available tools
+make list-domains      # List enabled domains
+make test-core         # Run core tests
+make test-domain DOMAIN=referral_network  # Run domain tests
 ```
 
 ## Troubleshooting

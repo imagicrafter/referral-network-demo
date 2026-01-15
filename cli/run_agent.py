@@ -24,9 +24,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Import from shared modules
-from src.tools.definitions import TOOL_DEFINITIONS, get_tool_functions
+# Import from core - NEW modular architecture
+from src.core.tool_registry import ToolRegistry
 from src.prompts.system_prompts import SYSTEM_PROMPT
+
+# Initialize registry once
+_registry = None
+
+
+def get_registry():
+    """Get or create the tool registry singleton."""
+    global _registry
+    if _registry is None:
+        _registry = ToolRegistry()
+        _registry.load_domains()
+    return _registry
 
 
 def run_azure_agent():
@@ -35,8 +47,9 @@ def run_azure_agent():
     import time
     from openai import AzureOpenAI, RateLimitError
 
-    # Get tool functions
-    TOOL_FUNCTIONS = get_tool_functions()
+    # Get tool functions from registry
+    registry = get_registry()
+    TOOL_FUNCTIONS = registry.get_all_tools()
 
     # Configuration
     AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -58,17 +71,7 @@ def run_azure_agent():
     )
 
     def get_tools():
-        tools = []
-        for tool_def in TOOL_DEFINITIONS:
-            tools.append({
-                "type": "function",
-                "function": {
-                    "name": tool_def["name"],
-                    "description": tool_def["description"],
-                    "parameters": tool_def["parameters"]
-                }
-            })
-        return tools
+        return registry.get_openai_tools()
 
     def call_with_retry(func, max_retries=3, initial_wait=60):
         for attempt in range(max_retries):
@@ -175,8 +178,9 @@ def run_gradient_agent():
     import json
     from gradient import AsyncGradient
 
-    # Get tool functions
-    TOOL_FUNCTIONS = get_tool_functions()
+    # Get tool functions from registry
+    registry = get_registry()
+    TOOL_FUNCTIONS = registry.get_all_tools()
 
     GRADIENT_MODEL = os.getenv("GRADIENT_MODEL", "openai-gpt-oss-120b")
     GRADIENT_MODEL_ACCESS_KEY = os.getenv("GRADIENT_MODEL_ACCESS_KEY")
@@ -188,17 +192,7 @@ def run_gradient_agent():
         return
 
     def get_tools():
-        tools = []
-        for tool_def in TOOL_DEFINITIONS:
-            tools.append({
-                "type": "function",
-                "function": {
-                    "name": tool_def["name"],
-                    "description": tool_def["description"],
-                    "parameters": tool_def["parameters"]
-                }
-            })
-        return tools
+        return registry.get_openai_tools()
 
     async def run_agent_async(user_message: str) -> str:
         messages = [
@@ -296,7 +290,8 @@ def run_gradient_agent():
 
 def test_database():
     """Test the database connection."""
-    from src.tools.queries import get_network_statistics
+    registry = get_registry()
+    get_network_statistics = registry.get_tool("get_network_statistics")
     print("\n--- Testing Database Connection ---")
     try:
         stats = get_network_statistics()

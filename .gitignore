@@ -21,3 +21,6 @@ local.settings.json
 
 # Azure Functions local settings
 azure-functions/local.settings.json
+
+# Copied src/ directory for Azure Functions deployment (created by deploy-azure.sh)
+azure-functions/src/

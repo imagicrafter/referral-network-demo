@@ -11,7 +11,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 import argparse
-from src.tools import queries
+from src.core.tool_registry import ToolRegistry
+
+# Initialize registry
+_registry = None
+
+
+def get_registry():
+    """Get or create the tool registry singleton."""
+    global _registry
+    if _registry is None:
+        _registry = ToolRegistry()
+        _registry.load_domains()
+    return _registry
 
 
 def main():
@@ -68,22 +80,25 @@ def main():
         return
 
     try:
+        registry = get_registry()
+        tools = registry.get_all_tools()
+
         if args.command == 'find_hospital':
-            result = queries.find_hospital(args.name)
+            result = tools['find_hospital'](name=args.name)
         elif args.command == 'get_referral_sources':
-            result = queries.get_referral_sources(args.hospital_name)
+            result = tools['get_referral_sources'](hospital_name=args.hospital_name)
         elif args.command == 'get_referral_destinations':
-            result = queries.get_referral_destinations(args.hospital_name)
+            result = tools['get_referral_destinations'](hospital_name=args.hospital_name)
         elif args.command == 'get_network_statistics':
-            result = queries.get_network_statistics()
+            result = tools['get_network_statistics']()
         elif args.command == 'find_referral_path':
-            result = queries.find_referral_path(args.from_hospital, args.to_hospital)
+            result = tools['find_referral_path'](from_hospital=args.from_hospital, to_hospital=args.to_hospital)
         elif args.command == 'get_providers_by_specialty':
-            result = queries.get_providers_by_specialty(args.specialty)
+            result = tools['get_providers_by_specialty'](specialty=args.specialty)
         elif args.command == 'get_hospitals_by_service':
-            result = queries.get_hospitals_by_service(args.service)
+            result = tools['get_hospitals_by_service'](service_name=args.service)
         elif args.command == 'analyze_rural_access':
-            result = queries.analyze_rural_access(args.service)
+            result = tools['analyze_rural_access'](service_name=args.service)
         else:
             print(f"Unknown command: {args.command}", file=sys.stderr)
             sys.exit(1)
