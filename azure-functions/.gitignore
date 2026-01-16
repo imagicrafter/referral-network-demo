@@ -1,0 +1,26 @@
+# Directories copied during deployment (from project root)
+# These are created by deploy-azure.sh and should not be committed
+src/
+config/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Environment
+.env
+local.settings.json
+
+# IDE
+.vscode/
+.idea/
+
+# Azure Functions
+.funcignore
+bin/
+obj/

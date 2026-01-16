@@ -13,7 +13,10 @@ help:
 	@echo "  make typecheck     - Run type checking with mypy"
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make run-agent     - Run the agent (uses AGENT_PROVIDER from .env)"
-	@echo "  make deploy-azure  - Deploy Azure Functions"
+	@echo "  make azure-prepare - Copy src/ and config/ to azure-functions/"
+	@echo "  make azure-local   - Run Azure Functions locally"
+	@echo "  make deploy-azure  - Deploy Azure Functions (quick)"
+	@echo "  make deploy-azure-full - Deploy with full setup script"
 	@echo "  make load-data     - Load sample data into Cosmos DB"
 	@echo ""
 	@echo "Modular architecture commands:"
@@ -72,11 +75,21 @@ test-db:
 	python run_agent.py --test
 
 # Azure Functions
-azure-local:
+azure-local: azure-prepare
 	cd azure-functions && func start
 
-deploy-azure:
+azure-prepare:
+	@echo "Copying shared directories to azure-functions/..."
+	rm -rf azure-functions/src azure-functions/config
+	cp -r src azure-functions/src
+	cp -r config azure-functions/config
+	@echo "Done. Ready for local development or deployment."
+
+deploy-azure: azure-prepare
 	cd azure-functions && func azure functionapp publish referral-network-api --python
+
+deploy-azure-full:
+	cd azure-functions && ./deploy-azure.sh
 
 # Data management
 load-data:

@@ -3,6 +3,37 @@
 
 set -e  # Exit on error
 
+# =============================================================================
+# Pre-flight validation
+# =============================================================================
+echo "=== Pre-flight Validation ==="
+
+# Ensure we're in the azure-functions directory
+if [ ! -f "function_app.py" ]; then
+  echo "ERROR: Must run this script from the azure-functions/ directory"
+  echo "  cd azure-functions && ./deploy-azure.sh"
+  exit 1
+fi
+
+# Check that source directories exist in parent
+if [ ! -d "../src/core" ]; then
+  echo "ERROR: ../src/core/ directory not found"
+  echo "  Make sure you're running from the project's azure-functions/ directory"
+  exit 1
+fi
+
+if [ ! -f "../config/domains.yaml" ]; then
+  echo "ERROR: ../config/domains.yaml not found"
+  echo "  Make sure you're running from the project's azure-functions/ directory"
+  exit 1
+fi
+
+echo "Pre-flight checks passed"
+echo ""
+
+# =============================================================================
+# Configuration
+# =============================================================================
 RESOURCE_GROUP="rg-referral-network-demo"
 LOCATION="centralus"
 STORAGE_ACCOUNT="referralnetstr$RANDOM"
@@ -78,12 +109,21 @@ else
   echo "Skipping Cosmos DB configuration. Set it later in Azure Portal."
 fi
 
-# Copy shared src/ directory for deployment
+# Copy shared directories for deployment
 echo ""
 echo "=== Preparing Deployment Package ==="
+
+# Clean up any existing copies to avoid stale files
+echo "Cleaning up previous deployment copies..."
+rm -rf ./src ./config
+
 echo "Copying shared src/ directory..."
 cp -r ../src ./src
 echo "src/ directory copied successfully"
+
+echo "Copying config/ directory..."
+cp -r ../config ./config
+echo "config/ directory copied successfully"
 
 # Publish the functions
 echo ""
