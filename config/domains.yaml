@@ -39,8 +39,32 @@ domains:
       - employs
       - specializes_in
 
-  # Placeholder for Phase 2 - Quality Improvement domain
-  # quality_improvement:
-  #   enabled: false
-  #   depends_on: [referral_network]
-  #   module: "src.domains.quality_improvement"
+  quality_improvement:
+    enabled: true
+    name: "Quality Improvement Analytics"
+    description: >
+      Track protocol adoption, best practice spread, and outcome improvements
+      across the hospital network. Analyze how quality initiatives propagate
+      through referral and collaboration relationships.
+    version: "1.0.0"
+    depends_on:
+      - referral_network
+    module: "src.domains.quality_improvement"
+
+    tools:
+      - get_protocol_adoption_status
+      - find_adoption_gaps
+      - get_protocol_spread_path
+      - find_quality_champions
+      - analyze_outcome_improvement
+      - generate_adoption_spread_diagram
+
+    vertex_types:
+      - protocol
+      - outcome_metric
+
+    edge_types:
+      - adopted
+      - learned_from
+      - achieved
+      - measures
